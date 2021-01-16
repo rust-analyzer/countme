@@ -2,7 +2,7 @@
 # It is not intended for manual editing.
 [[package]]
 name = "countme"
-version = "1.0.2"
+version = "1.0.3"
 
 [[package]]
 name = "xaction"

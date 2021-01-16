@@ -132,12 +132,12 @@ impl<T: CountMe> Token<T> {
             let mut max = 0;
             loop {
                 max = match store.max.compare_exchange_weak(max, live, Relaxed, Relaxed) {
-                    Ok(_) => {
+                    Err(max) if max < live => max,
+                    Err(max) if max == live + 1 => {
                         T::on_new_max();
                         break;
                     }
-                    Err(max) if live <= max => break,
-                    Err(max) => max,
+                    Err(_) | Ok(_) => break,
                 };
             }
         }
