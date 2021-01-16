@@ -1,13 +1,16 @@
 [package]
 name = "countme"
 description = "Counts the number of live instances of types"
-version = "1.0.1"
+version = "1.0.2"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/matklad/countme"
 authors = ["Aleksey Kladov <aleksey.kladov@gmail.com>"]
 edition = "2018"
 
+exclude = [".github/", "bors.toml", "rustfmt.toml"]
+
 [workspace]
 members = ["xtask"]
 
-exclude = [".github/", "bors.toml", "rustfmt.toml"]
+[features]
+no-op = []

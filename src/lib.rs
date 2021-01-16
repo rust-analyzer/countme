@@ -10,6 +10,8 @@
 //!   hooks to, eg, print the counts.
 //! * Use [`countme::get::<T>()`][`get`] function to fetch the counts.
 //!
+//! To disable the counting, use the `no-op` feature of the crate.
+//!
 //! # Example
 //!
 //! ```
@@ -122,24 +124,28 @@ impl<T: CountMe> Clone for Token<T> {
 
 impl<T: CountMe> Token<T> {
     pub fn alloc() -> Token<T> {
-        let store = T::store();
-        store.total.fetch_add(1, Relaxed);
-        let live = store.live.fetch_add(1, Relaxed) + 1;
-        let mut max = 0;
-        loop {
-            max = match store.max.compare_exchange_weak(max, live, Relaxed, Relaxed) {
-                Ok(_) => {
-                    T::on_new_max();
-                    break;
-                }
-                Err(max) if live <= max => break,
-                Err(max) => max,
-            };
+        #[cfg(not(feature = "no-op"))]
+        {
+            let store = T::store();
+            store.total.fetch_add(1, Relaxed);
+            let live = store.live.fetch_add(1, Relaxed) + 1;
+            let mut max = 0;
+            loop {
+                max = match store.max.compare_exchange_weak(max, live, Relaxed, Relaxed) {
+                    Ok(_) => {
+                        T::on_new_max();
+                        break;
+                    }
+                    Err(max) if live <= max => break,
+                    Err(max) => max,
+                };
+            }
         }
         Token { ghost: PhantomData }
     }
 }
 
+#[cfg(not(feature = "no-op"))]
 impl<T: CountMe> Drop for Token<T> {
     fn drop(&mut self) {
         let store = T::store();
