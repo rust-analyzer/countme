@@ -103,6 +103,7 @@ impl Store {
 }
 
 /// Store this inside your struct as `_t: countme::Token<Self>`.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Token<T: CountMe> {
     ghost: PhantomData<fn(T)>,
 }
@@ -110,6 +111,12 @@ pub struct Token<T: CountMe> {
 impl<T: CountMe> Default for Token<T> {
     fn default() -> Self {
         Token::alloc()
+    }
+}
+
+impl<T: CountMe> Clone for Token<T> {
+    fn clone(&self) -> Self {
+        Self::alloc()
     }
 }
 
