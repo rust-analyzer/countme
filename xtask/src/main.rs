@@ -22,13 +22,9 @@ fn try_main() -> Result<()> {
     let cargo_toml = cargo_toml()?;
 
     {
-        let _s = section("BUILD");
-        cmd!("cargo test --workspace --no-run").run()?;
-    }
-
-    {
         let _s = section("TEST");
         cmd!("cargo test --workspace -- --nocapture").run()?;
+        cmd!("cargo test --workspace --features enable -- --nocapture").run()?;
     }
 
     let version = cargo_toml.version()?;
