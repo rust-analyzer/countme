@@ -74,7 +74,9 @@ fn do_get(key: &'static str) -> Counts {
 }
 
 pub(crate) fn get_all() -> AllCounts {
-    let entries = global_store().iter().map(|entry| (*entry.key(), entry.value().read())).collect();
+    let mut entries =
+        global_store().iter().map(|entry| (*entry.key(), entry.value().read())).collect::<Vec<_>>();
+    entries.sort_by_key(|(name, _counts)| *name);
     AllCounts { entries }
 }
 
@@ -89,19 +91,11 @@ impl Store {
     fn inc(&self) {
         self.total.fetch_add(1, Relaxed);
         let live = self.live.fetch_add(1, Relaxed) + 1;
-
-        let mut max = 0;
-        loop {
-            max = match self.max_live.compare_exchange_weak(max, live, Relaxed, Relaxed) {
-                Err(max) if max < live => max,
-                Err(_) | Ok(_) => break,
-            };
-        }
+        self.max_live.fetch_max(live, Relaxed);
     }
 
-    fn dec(&self) -> bool {
-        let live = self.live.fetch_sub(1, Relaxed) - 1;
-        live == 0
+    fn dec(&self) {
+        self.live.fetch_sub(1, Relaxed);
     }
 
     fn read(&self) -> Counts {
