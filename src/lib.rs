@@ -83,6 +83,9 @@ impl<T> Clone for Count<T> {
 }
 
 impl<T> Count<T> {
+    pub const NOT_COUNTED: Count<T> = Count { ghost: PhantomData };
+
+    /// Create new `Count`, incrementing the corresponding count.
     #[inline]
     pub fn new() -> Count<T> {
         #[cfg(feature = "enable")]
