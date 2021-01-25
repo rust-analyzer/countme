@@ -1,7 +1,8 @@
 [package]
 name = "countme"
 description = "Counts the number of live instances of types"
-version = "2.0.0-pre.2"
+version = "2.0.0"
+categories = ["development-tools::profiling"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/matklad/countme"
 authors = ["Aleksey Kladov <aleksey.kladov@gmail.com>"]

@@ -31,8 +31,8 @@
 //! The `enable` cargo feature ungates the counting code. The feature can be
 //! enabled anywhere in the crate graph.
 //!
-//! At run-time, the counters are controlled with [`enable`] function. Counts
-//! are enabled by default. Call `enable(false)` early in main to disable:
+//! At run-time, the counters are controlled with [`enable`] function. Counting
+//! is enabled by default. Call `enable(false)` early in `main` to disable:
 //!
 //! ```rust
 //! fn main() {
@@ -41,7 +41,7 @@
 //! ```
 //!
 //! The code is optimized for the case where counting is not enabled at runtime
-//! (counting is a relaxed load and a branch to function call).
+//! (counting is a relaxed load and a branch to a function call).
 //!
 //! The `print_at_exit` Cargo feature uses `atexit` call to print final counts
 //! before the program exits. Use it only when you can't modify the main to

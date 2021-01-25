@@ -1,6 +1,6 @@
 use std::thread;
 
-use countme::{Count, get};
+use countme::{get, Count};
 
 #[derive(Default)]
 struct Foo {
