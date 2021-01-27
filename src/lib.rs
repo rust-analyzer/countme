@@ -144,7 +144,7 @@ impl fmt::Display for AllCounts {
         fn sep(mut n: usize) -> String {
             let mut groups = Vec::new();
             while n >= 1000 {
-                groups.push((n % 1000).to_string());
+                groups.push(format!("{:03}", n % 100));
                 n /= 1000;
             }
             groups.push(n.to_string());
@@ -159,18 +159,28 @@ impl fmt::Display for AllCounts {
                 writeln!(f, "counts are disabled")
             };
         }
-
+        let max_width =
+            self.entries.iter().map(|(name, _count)| name.chars().count()).max().unwrap_or(0);
         for (name, counts) in &self.entries {
             writeln!(
                 f,
-                "{}:\n  {:>12} {:>12} {:>12}",
+                "{:<max_width$}  {:>12} {:>12} {:>12}",
                 name,
                 sep(counts.total),
                 sep(counts.max_live),
                 sep(counts.live),
+                max_width = max_width
             )?;
         }
-        writeln!(f, "  {:>12} {:>12} {:>12}", "total", "max_live", "live")?;
+        writeln!(
+            f,
+            "{:<max_width$}  {:>12} {:>12} {:>12}",
+            "",
+            "total",
+            "max_live",
+            "live",
+            max_width = max_width
+        )?;
         Ok(())
     }
 }
