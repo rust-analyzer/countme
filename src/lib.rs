@@ -141,6 +141,17 @@ pub struct AllCounts {
 
 impl fmt::Display for AllCounts {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fn sep(mut n: usize) -> String {
+            let mut groups = Vec::new();
+            while n >= 1000 {
+                groups.push((n % 1000).to_string());
+                n /= 1000;
+            }
+            groups.push(n.to_string());
+            groups.reverse();
+            groups.join("_")
+        }
+
         if self.entries.is_empty() {
             return if cfg!(feature = "enable") {
                 writeln!(f, "all counts are zero")
@@ -149,17 +160,17 @@ impl fmt::Display for AllCounts {
             };
         }
 
-        writeln!(f, "cnt: {:>7} {:>10} {:>10}", "total", "max_live", "live")?;
         for (name, counts) in &self.entries {
             writeln!(
                 f,
-                "{}:\n  {:>10} {:>10} {:>10}",
-                name, counts.total, counts.max_live, counts.live,
+                "{}:\n  {:>12} {:>12} {:>12}",
+                name,
+                sep(counts.total),
+                sep(counts.max_live),
+                sep(counts.live),
             )?;
         }
-        if self.entries.len() > 10 {
-            writeln!(f, "  {:>10} {:>10} {:>10}", "total", "max_live", "live")?;
-        }
+        writeln!(f, "  {:>12} {:>12} {:>12}", "total", "max_live", "live")?;
         Ok(())
     }
 }
