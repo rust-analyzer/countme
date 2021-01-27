@@ -4,6 +4,7 @@ A library to quickly get the live/total/max counts of allocated instances.
 #[derive(Default)]
 struct Widget {
   _c: countme::Count<Self>,
+  ...
 }
 
 let w1 = Widget::default();
