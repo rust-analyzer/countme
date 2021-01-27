@@ -144,7 +144,7 @@ impl fmt::Display for AllCounts {
         fn sep(mut n: usize) -> String {
             let mut groups = Vec::new();
             while n >= 1000 {
-                groups.push(format!("{:03}", n % 100));
+                groups.push(format!("{:03}", n % 1000));
                 n /= 1000;
             }
             groups.push(n.to_string());
