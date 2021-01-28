@@ -10,6 +10,8 @@
 //!   _c: countme::Count<Self>,
 //! }
 //!
+//! countme::enable(true);
+//!
 //! let w1 = Widget::default();
 //! let w2 = Widget::default();
 //! let w3 = Widget::default();
@@ -32,7 +34,7 @@
 //! enabled anywhere in the crate graph.
 //!
 //! At run-time, the counters are controlled with [`enable`] function. Counting
-//! is enabled by default. Call `enable(false)` early in `main` to disable:
+//! is disabled by default. Call `enable(true)` early in `main` to enable:
 //!
 //! ```rust
 //! fn main() {
@@ -44,8 +46,9 @@
 //! (counting is a relaxed load and a branch to a function call).
 //!
 //! The `print_at_exit` Cargo feature uses `atexit` call to print final counts
-//! before the program exits. Use it only when you can't modify the main to
-//! print counts -- `atexit` is not guaranteed to work with rust's runtime.
+//! before the program exits (it also enables counting at runtime). Use it only
+//! when you can't modify the main to print counts -- `atexit` is not guaranteed
+//! to work with rust's runtime.
 #[cfg(feature = "enable")]
 mod imp;
 

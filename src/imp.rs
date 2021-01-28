@@ -11,7 +11,7 @@ use rustc_hash::FxHasher;
 
 use crate::{AllCounts, Counts};
 
-static ENABLE: AtomicBool = AtomicBool::new(true);
+static ENABLE: AtomicBool = AtomicBool::new(cfg!(feature = "print_at_exit"));
 
 type GlobalStore = DashMap<&'static str, Store, BuildHasherDefault<FxHasher>>;
 
