@@ -27,6 +27,7 @@ mod deeply {
 }
 
 fn main() {
+    countme::enable(true);
     let t = std::time::Instant::now();
     let n = 5;
     let m = 1_000_000;
