@@ -67,25 +67,25 @@ pub struct Counts {
 
 /// Store this inside your struct as `_c: countme::Count<Self>`.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Count<T> {
+pub struct Count<T: 'static> {
     ghost: PhantomData<fn(T)>,
 }
 
-impl<T> Default for Count<T> {
+impl<T: 'static> Default for Count<T> {
     #[inline]
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<T> Clone for Count<T> {
+impl<T: 'static> Clone for Count<T> {
     #[inline]
     fn clone(&self) -> Self {
         Self::new()
     }
 }
 
-impl<T> Count<T> {
+impl<T: 'static> Count<T> {
     /// Create new `Count`, incrementing the corresponding count.
     #[inline]
     pub fn new() -> Count<T> {
@@ -95,7 +95,7 @@ impl<T> Count<T> {
     }
 }
 
-impl<T> Drop for Count<T> {
+impl<T: 'static> Drop for Count<T> {
     #[inline]
     fn drop(&mut self) {
         #[cfg(feature = "enable")]
@@ -113,7 +113,7 @@ pub fn enable(_yes: bool) {
 
 /// Returns the counts for the `T` type.
 #[inline]
-pub fn get<T>() -> Counts {
+pub fn get<T: 'static>() -> Counts {
     #[cfg(feature = "enable")]
     {
         return imp::get::<T>();
