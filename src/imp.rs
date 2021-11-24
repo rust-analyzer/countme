@@ -52,7 +52,9 @@ pub(crate) fn dec<T>() {
 }
 #[inline(never)]
 fn do_dec(key: &'static str) {
-    global_store().entry(&key).or_default().value().dec();
+    if let Some(store) = global_store().get(&key) {
+        store.value().dec();
+    }
 }
 
 #[inline]
