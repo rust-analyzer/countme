@@ -26,7 +26,7 @@ mod deeply {
 
 fn main() {
     countme::enable(true);
-    //let t = std::time::Instant::now();
+    let t = std::time::Instant::now();
     let n = 6;
     let m = 2_000_000;
 
@@ -73,5 +73,5 @@ fn main() {
     assert_eq!(bar.max_live, m + 1);
     assert_eq!(bar.live, 0);
 
-    //println!("{:?}", t.elapsed());
+    println!("{:?}", t.elapsed());
 }
