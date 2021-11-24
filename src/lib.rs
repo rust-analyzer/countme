@@ -34,7 +34,8 @@
 //! enabled anywhere in the crate graph.
 //!
 //! At run-time, the counters are controlled with [`enable`] function. Counting
-//! is disabled by default. Call `enable(true)` early in `main` to enable:
+//! is enabled by default if `print_at_exit` feature is enabled. Otherwise
+//! counting is disabled by default. Call `enable(true)` early in `main` to enable:
 //!
 //! ```rust
 //! fn main() {
@@ -67,25 +68,25 @@ pub struct Counts {
 
 /// Store this inside your struct as `_c: countme::Count<Self>`.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Count<T> {
+pub struct Count<T: 'static> {
     ghost: PhantomData<fn(T)>,
 }
 
-impl<T> Default for Count<T> {
+impl<T: 'static> Default for Count<T> {
     #[inline]
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<T> Clone for Count<T> {
+impl<T: 'static> Clone for Count<T> {
     #[inline]
     fn clone(&self) -> Self {
         Self::new()
     }
 }
 
-impl<T> Count<T> {
+impl<T: 'static> Count<T> {
     /// Create new `Count`, incrementing the corresponding count.
     #[inline]
     pub fn new() -> Count<T> {
@@ -95,7 +96,7 @@ impl<T> Count<T> {
     }
 }
 
-impl<T> Drop for Count<T> {
+impl<T: 'static> Drop for Count<T> {
     #[inline]
     fn drop(&mut self) {
         #[cfg(feature = "enable")]
@@ -105,7 +106,10 @@ impl<T> Drop for Count<T> {
 
 /// Enable or disable counting at runtime.
 ///
-/// Counting is enabled by default.
+/// Counting is enabled by default if `print_at_exit` feature is enabled.
+/// Otherwise counting is disabled by default.
+///
+/// If neither `enable` nor `print_at_exit` features are enabled, then this function is noop.
 pub fn enable(_yes: bool) {
     #[cfg(feature = "enable")]
     imp::enable(_yes);
@@ -113,7 +117,7 @@ pub fn enable(_yes: bool) {
 
 /// Returns the counts for the `T` type.
 #[inline]
-pub fn get<T>() -> Counts {
+pub fn get<T: 'static>() -> Counts {
     #[cfg(feature = "enable")]
     {
         return imp::get::<T>();

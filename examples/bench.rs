@@ -62,7 +62,7 @@ fn main() {
 
     let bar = get::<Bar>();
     assert_eq!(bar.total, m * n);
-    assert!(bar.max_live >= n);
+    assert!(bar.max_live >= m);
     assert_eq!(bar.live, 0);
 
     println!("{:?}", t.elapsed());

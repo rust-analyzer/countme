@@ -1,8 +1,11 @@
 use std::{
-    any::type_name,
+    any::{type_name, TypeId},
+    cell::RefCell,
+    collections::HashMap,
     hash::BuildHasherDefault,
     os::raw::c_int,
     sync::atomic::{AtomicBool, AtomicUsize, Ordering::Relaxed},
+    sync::Arc,
 };
 
 use dashmap::DashMap;
@@ -13,7 +16,7 @@ use crate::{AllCounts, Counts};
 
 static ENABLE: AtomicBool = AtomicBool::new(cfg!(feature = "print_at_exit"));
 
-type GlobalStore = DashMap<&'static str, Store, BuildHasherDefault<FxHasher>>;
+type GlobalStore = DashMap<TypeId, Arc<Store>, BuildHasherDefault<FxHasher>>;
 
 #[inline]
 fn global_store() -> &'static GlobalStore {
@@ -35,6 +38,10 @@ fn global_store() -> &'static GlobalStore {
     })
 }
 
+thread_local! {
+    static LOCAL: RefCell<HashMap<TypeId, Arc<Store>, BuildHasherDefault<FxHasher>>> = RefCell::default();
+}
+
 pub(crate) fn enable(yes: bool) {
     ENABLE.store(yes, Relaxed);
 }
@@ -45,37 +52,92 @@ fn enabled() -> bool {
 }
 
 #[inline]
-pub(crate) fn dec<T>() {
+pub(crate) fn dec<T: 'static>() {
     if enabled() {
-        do_dec(type_name::<T>())
+        do_dec(TypeId::of::<T>())
     }
 }
 #[inline(never)]
-fn do_dec(key: &'static str) {
-    global_store().entry(&key).or_default().value().dec();
+fn do_dec(key: TypeId) {
+    LOCAL.with(|local| {
+        // Fast path: we have needed store in thread local map
+        if let Some(store) = local.borrow().get(&key) {
+            store.dec();
+            return;
+        }
+
+        let global = global_store();
+
+        // Slightly slower: we don't have needed store in our thread local map,
+        // but some other thread has already initialized the needed store in the global map
+        if let Some(store) = global.get(&key) {
+            let store = store.value();
+            local.borrow_mut().insert(key, Arc::clone(store));
+            store.inc();
+            return;
+        }
+
+        // We only decrement counter after incremenrting it, so this line is unreachable
+    })
 }
 
 #[inline]
-pub(crate) fn inc<T>() {
+pub(crate) fn inc<T: 'static>() {
     if enabled() {
-        do_inc(type_name::<T>())
+        do_inc(TypeId::of::<T>(), type_name::<T>())
     }
 }
 #[inline(never)]
-fn do_inc(key: &'static str) {
-    global_store().entry(&key).or_default().value().inc();
+fn do_inc(key: TypeId, name: &'static str) {
+    LOCAL.with(|local| {
+        // Fast path: we have needed store in thread local map
+        if let Some(store) = local.borrow().get(&key) {
+            store.inc();
+            return;
+        }
+
+        let global = global_store();
+
+        let copy = match global.get(&key) {
+            // Slightly slower path: we don't have needed store in our thread local map,
+            // but some other thread has already initialized the needed store in the global map
+            Some(store) => {
+                let store = store.value();
+                store.inc();
+                Arc::clone(store)
+            }
+            // Slow path: we are the first to initialize both global and local maps
+            None => {
+                let store = global
+                    .entry(key)
+                    .or_insert_with(|| Arc::new(Store { name, ..Store::default() }))
+                    .downgrade();
+                let store = store.value();
+
+                store.inc();
+                Arc::clone(store)
+            }
+        };
+
+        local.borrow_mut().insert(key, copy);
+    });
 }
 
-pub(crate) fn get<T>() -> Counts {
-    do_get(type_name::<T>())
+pub(crate) fn get<T: 'static>() -> Counts {
+    do_get(TypeId::of::<T>())
 }
-fn do_get(key: &'static str) -> Counts {
-    global_store().entry(&key).or_default().value().read()
+fn do_get(key: TypeId) -> Counts {
+    global_store().entry(key).or_default().value().read()
 }
 
 pub(crate) fn get_all() -> AllCounts {
-    let mut entries =
-        global_store().iter().map(|entry| (*entry.key(), entry.value().read())).collect::<Vec<_>>();
+    let mut entries = global_store()
+        .iter()
+        .map(|entry| {
+            let store = entry.value();
+            (store.type_name(), store.read())
+        })
+        .collect::<Vec<_>>();
     entries.sort_by_key(|(name, _counts)| *name);
     AllCounts { entries }
 }
@@ -85,6 +147,7 @@ struct Store {
     total: AtomicUsize,
     max_live: AtomicUsize,
     live: AtomicUsize,
+    name: &'static str,
 }
 
 impl Store {
@@ -104,5 +167,9 @@ impl Store {
             max_live: self.max_live.load(Relaxed),
             live: self.live.load(Relaxed),
         }
+    }
+
+    fn type_name(&self) -> &'static str {
+        self.name
     }
 }

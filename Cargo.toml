@@ -1,7 +1,7 @@
 [package]
 name = "countme"
 description = "Counts the number of live instances of types"
-version = "2.0.4"
+version = "3.0.0"
 categories = ["development-tools::profiling"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/matklad/countme"
@@ -19,6 +19,10 @@ required-features = ["print_at_exit"]
 
 [[example]]
 name = "bench"
+required-features = ["enable"]
+
+[[example]]
+name = "bench_single_thread"
 required-features = ["enable"]
 
 [dependencies]
