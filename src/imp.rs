@@ -1,8 +1,11 @@
 use std::{
     any::{type_name, TypeId},
+    cell::RefCell,
+    collections::HashMap,
     hash::BuildHasherDefault,
     os::raw::c_int,
     sync::atomic::{AtomicBool, AtomicUsize, Ordering::Relaxed},
+    sync::Arc,
 };
 
 use dashmap::DashMap;
@@ -13,7 +16,7 @@ use crate::{AllCounts, Counts};
 
 static ENABLE: AtomicBool = AtomicBool::new(cfg!(feature = "print_at_exit"));
 
-type GlobalStore = DashMap<TypeId, Store, BuildHasherDefault<FxHasher>>;
+type GlobalStore = DashMap<TypeId, Arc<Store>, BuildHasherDefault<FxHasher>>;
 
 #[inline]
 fn global_store() -> &'static GlobalStore {
@@ -35,6 +38,10 @@ fn global_store() -> &'static GlobalStore {
     })
 }
 
+thread_local! {
+    static LOCAL: RefCell<HashMap<TypeId, Arc<Store>, BuildHasherDefault<FxHasher>>> = RefCell::default();
+}
+
 pub(crate) fn enable(yes: bool) {
     ENABLE.store(yes, Relaxed);
 }
@@ -52,9 +59,26 @@ pub(crate) fn dec<T: 'static>() {
 }
 #[inline(never)]
 fn do_dec(key: TypeId) {
-    if let Some(store) = global_store().get(&key) {
-        store.value().dec();
-    }
+    LOCAL.with(|local| {
+        // Fast path: we have needed store in thread local map
+        if let Some(store) = local.borrow().get(&key) {
+            store.dec();
+            return;
+        }
+
+        let global = global_store();
+
+        // Slightly slower: we don't have needed store in our thread local map,
+        // but some other thread has already initialized the needed store in the global map
+        if let Some(store) = global.get(&key) {
+            let store = store.value();
+            local.borrow_mut().insert(key, Arc::clone(store));
+            store.inc();
+            return;
+        }
+
+        // We only decrement counter after incremenrting it, so this line is unreachable
+    })
 }
 
 #[inline]
@@ -65,17 +89,38 @@ pub(crate) fn inc<T: 'static>() {
 }
 #[inline(never)]
 fn do_inc(key: TypeId, name: &'static str) {
-    let global = global_store();
+    LOCAL.with(|local| {
+        // Fast path: we have needed store in thread local map
+        if let Some(store) = local.borrow().get(&key) {
+            store.inc();
+            return;
+        }
 
-    match global.get(&key) {
-        Some(store) => store.value().inc(),
-        None => global
-            .entry(key)
-            .or_insert_with(|| Store { name, ..Store::default() })
-            .downgrade()
-            .value()
-            .inc(),
-    }
+        let global = global_store();
+
+        let copy = match global.get(&key) {
+            // Slightly slower path: we don't have needed store in our thread local map,
+            // but some other thread has already initialized the needed store in the global map
+            Some(store) => {
+                let store = store.value();
+                store.inc();
+                Arc::clone(store)
+            }
+            // Slow path: we are the first to initialize both global and local maps
+            None => {
+                let store = global
+                    .entry(key)
+                    .or_insert_with(|| Arc::new(Store { name, ..Store::default() }))
+                    .downgrade();
+                let store = store.value();
+
+                store.inc();
+                Arc::clone(store)
+            }
+        };
+
+        local.borrow_mut().insert(key, copy);
+    });
 }
 
 pub(crate) fn get<T: 'static>() -> Counts {
