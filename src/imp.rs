@@ -65,7 +65,17 @@ pub(crate) fn inc<T: 'static>() {
 }
 #[inline(never)]
 fn do_inc(key: TypeId, name: &'static str) {
-    global_store().entry(key).or_insert_with(|| Store { name, ..Store::default() }).value().inc();
+    let global = global_store();
+
+    match global.get(&key) {
+        Some(store) => store.value().inc(),
+        None => global
+            .entry(key)
+            .or_insert_with(|| Store { name, ..Store::default() })
+            .downgrade()
+            .value()
+            .inc(),
+    }
 }
 
 pub(crate) fn get<T: 'static>() -> Counts {
