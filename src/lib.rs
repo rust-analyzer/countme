@@ -34,7 +34,8 @@
 //! enabled anywhere in the crate graph.
 //!
 //! At run-time, the counters are controlled with [`enable`] function. Counting
-//! is disabled by default. Call `enable(true)` early in `main` to enable:
+//! is enabled by default if `print_at_exit` feature is enabled. Otherwise
+//! counting is disabled by default. Call `enable(true)` early in `main` to enable:
 //!
 //! ```rust
 //! fn main() {
@@ -105,7 +106,10 @@ impl<T: 'static> Drop for Count<T> {
 
 /// Enable or disable counting at runtime.
 ///
-/// Counting is enabled by default.
+/// Counting is enabled by default if `print_at_exit` feature is enabled.
+/// Otherwise counting is disabled by default.
+///
+/// If neither `enable` nor `print_at_exit` features are enabled, then this function is noop.
 pub fn enable(_yes: bool) {
     #[cfg(feature = "enable")]
     imp::enable(_yes);
