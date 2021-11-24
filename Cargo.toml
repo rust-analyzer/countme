@@ -21,6 +21,10 @@ required-features = ["print_at_exit"]
 name = "bench"
 required-features = ["enable"]
 
+[[example]]
+name = "bench_single_thread"
+required-features = ["enable"]
+
 [dependencies]
 dashmap = { version = "4", optional = true }
 once_cell = { version = "1.5", optional = true }
